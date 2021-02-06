@@ -1,5 +1,4 @@
 # Django Web App
-===================================
 Introduction
 ===========================
 This Web App was built during a two week sprint called "Python Live Project" as an assignment for The Tech Academy's Software Developer Boot Camp. Prior to the project I completed a month long Python course that introduced the language syntax, history, capabilities, and challenged me with small projects/exercises throughout. Upon completion, I moved on to the Live Project portion that utilized agile project managemnt methodoligies including SCRUM. I met with a group of developers and our SCRUM master that led daily stand ups. To organize this sprint, we utilized Azure DevOps which had been introduced to use during the bootcamp. Each developer chose their own topic and built their app at their own pace.  This project is the interactive website for managing one's collections of things related to various hobbies, as well as API and Data Scraped content for those hobbies. I chose books, because I have accumulated many over the years and wanted a way to see what I have and where they are located through an online application. My Web App was built using the Django Framework in PyCharm where I uesd the terminal to create a virtual environment and install the packages needed for the project. This project exercized my skills in version control, research capabilities as well as my understanding for the MTV design pattern. Not only do I feel more confident building projects with this organization, I am excited to do more paired programming in the future. Below are a break down of the stories I completed and details of where I ran into roadblocks. 
@@ -104,9 +103,9 @@ Created a new app for the project, named LibraryApp
         </html>
 
 # CRUD Functionality
-=======================
+
 ## Story 2 - Creating models and model forms
--------------
+
 1) Created a model for the creation of libraries and a model for adding books. The Library is a foreign key to the book model so the user can add books to their specific library. Book model has categories of book generes the user can choose from. Each have a model manager for accessing the database.  
 
         from django.db import models
@@ -224,11 +223,14 @@ Created a new app for the project, named LibraryApp
             path('add/', views.add_book, name='add'),
 
 ## Story 3 & 4 - READ
--------------
+
 Displaying information from the database on the "your library" page.
 
 1) views function that display all the books in your library from passing through the primary key and sending to your library template
-        
+
+        URL path:
+           path('<int:pk>/library/', views.your_library, name='libraryList'),
+ 
         Function:
         def your_library(request, pk):
             lib = get_object_or_404(Library, pk=pk)  # retrieving a single library based off the primary key
@@ -274,15 +276,25 @@ Displaying information from the database on the "your library" page.
 
 
 
-4) Built another template that will allow more detail viewing of a given book. Here I will add edit/delete functionality. For now it displays all information of a single instance 
+## Story 5 - UPDATE & DELETE
 
+Allowing for edits and delete functions to be done from the details page of each specific book, bounce to confirmation before deleting.
+
+1) template for viewing a single book instance that has an option to edit or delete(functionality for that to come)
+
+        URL path:
+         path('details/<int:pk>/', views.single_detail, name="singleDetail"),
+   
+   
         Fucntion: 
+        
         def single_detail(request, pk):
             book_details = get_object_or_404(AddBook, pk=pk)  # retrieving a single book based off the primary key
             content = {'book_details': book_details}
             return render(request, 'library/details.html', content)
             
         Template: 
+        
         {% extends 'library/base.html' %}
         {% block title %}Your Library{% endblock %}
         {% block content %}
@@ -311,13 +323,117 @@ Displaying information from the database on the "your library" page.
                     </table>
         {% endblock %}
 
+3) template, url patterm, and view function for when user clicks on 'Make edits'. Using the AddBookForm to pupulate same forms user had when creating the book instance. This way they can make edits to those exact fields then override the information by hitting save. pk being passed through to know exactly what book is being updated
 
-## Story 5 - UPDATE & DELETE
--------------
+           URL Path:
+               path('edit/<int:pk>/', views.update, name='update'),
+               
+            view function
+                    def update(request, pk):
+                    book_edit = AddBook.addBook.get(pk=pk)
+                    form = AddBookForm(data=request.POST or None, instance=book_edit)
+                    if request.method == 'POST':
+                        if form.is_valid():
+                            form.save()
+                        return redirect('../../')
+                    context = {'form': form}
+                    return render(request, 'library/edit.html', context)
+                    
+             template:
+             
+                {% extends 'library/base.html' %}
+                {% block title %}Your Library{% endblock %}
+                {% block content %}
+                        <h3>Edit Details</h3>
+                                <div class="new-book-form">
+                                                <form method="POST">
+                                                        {% csrf_token %}
+                                                        {{form.as_p}}
+                                                        <button id="new-book-button" type="submit" name="Edit_Book">Save Edits</button>
+                                                </form>
+                                                <br>
+                {% endblock %}
+
+
+
+4) Option to delete book from the details page of that instance. using the pk to let the database know what is being removed
+
+         delete url path:
+            path('delete/<int:pk>/', views.delete, name='delete'),
+        
+        delete views function: 
+            def delete(request, pk):
+            book_delete = AddBook.addBook.get(pk=pk)
+            # POST request
+            if request.method == "POST":
+                # confirm delete
+                book_delete.delete()
+                return redirect('../../')
+            context = {'book_delete': book_delete}
+            return render(request, 'library/deleteConfirm.html', context)
+    
+        delete confirm template:
+                {% extends 'library/base.html' %}
+                {% block title %}Your Library{% endblock %}
+                {% block content %}
+                        <h3>Confirm Delete</h3>
+
+                            <form method="POST">
+                                {% csrf_token %}
+                                <h2>Are you sure you want to delete this book?</h2>
+                                <button id="new-library-button" type="submit">Yes</button><br>
+                                <button id="new-book-button" type="button"><a href="{% url 'singleDetail' pk=book_delete.id %}">Cancel</a></button>
+                        </form>
+                {% endblock %}
+
 
 ## Story 6 - API integration 
--------------
 
-Skills Acquired
-===========================
+For this story, I chose to integrate Google Books API so a user can search for books on the web. I registered a key with Google console and integrated that key to create an endpoint for each search. Athough I did not fully complete this story to where I would have liked it to be, I took a great deal of time learning about APIs and integrating them into apps. I am going to come back to this when I have a better understanding of what I want the API connection to do for the user. 
+        
+         URL path:
+         path('JSON/', views.google_books_api, name='Json'),
+         
+         
+         template: 
+        {% extends 'library/base.html' %}
+        {% block title %}JSON{% endblock %}
+        {% block content %}
+
+         <h3>Google books</h3>
+          <form method="POST">
+              {% csrf_token %}
+              {{ form.as_p }}
+            <button type="Submit" value="Submit">search books</button>
+          </form>
+
+        <div class=results>
+        
+        </div>
+
+        {% endblock %}
+         
+        views function:
+            def google_books_api(request):
+            # connecting the API query as an URI
+            search_field = ''
+            api = 'https://www.googleapis.com/books/v1/volumes'
+            api_key = 'NOT SHOWING FOR SECURITY PURPOSES'
+            form = GoogleBooksForm(data=request.POST or None)
+            if request.method == 'POST':
+                if form.is_valid():
+                    search_field = form.cleaned_data.get("search")
+            book_uri = api + '?q=' + search_field + '+intitle:' + 'keyes&key=' + api_key
+            response = requests.get(book_uri)
+            # print(response.status_code)
+            # prints json details for search_field attribute
+            # print(response.json())
+            context = {'form': form, 'response': response}
+            print(book_uri)
+            return render(request, 'library/JSON.html', context)
+
+
+# Skills Acquired
+
+The skills I acquired through building this app were project management/version control via Azure DevOps, a better understanding of the MVT design pattern, how to research specific roadblocks, and how integrating an API can be achieved. I have not used Azure DevOps in previous work environments so it was cool to exlpore some of what is offers. I enjoyed looking at the boards to know what I had incoming, and if my previous story was approved or not. The Wiki section was a huge reference point for me in this project to make sure I was staying on track, accomplishing the tasks at hand, and not over asking the SCRUM master questions when the information was laid out. I reached roadblocks in aspects of getting my code to work the way I hoped which led to me improving my research skills. I joined stack overflow (finally, after just being a viewer for years) and created a fodler of bookmarked pages to reference later. I enjoyed seeing what Python has to offer through building this app and researched other ways to strengthen my skills with similar projects. I look forward to working more closely with programmers in the future to build an app that we are all working on. 
 
